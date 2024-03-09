@@ -3,8 +3,6 @@ import numpy as np
 
 def func(xc):
     return xc * np.sin((xc**2)/300)
-#    return xc**3 - 50*xc**2 - 500*xc + 1000
-#    return xc ** 2
 
 #this is the range and the samples I want
 xc = np.linspace(-100, 100, 10000)
@@ -12,6 +10,7 @@ yc = func(xc)
 
 training_data = np.column_stack((xc, yc))
 print(training_data[:10000])
+
 
 #part2
 #model1
@@ -42,7 +41,6 @@ model1.add(Dense(1))
 model1.compile(
    loss = 'MAE', optimizer = 'Adam', metrics=['mae']
 )
-#model.fit(X_train, Y_train, batch_size = 128, epochs = 50)
 model1.fit(x_train1, y_train1, epochs=50, batch_size=128, validation_data=(x_test1, y_test1))
 
 
@@ -54,6 +52,9 @@ x_train2, x_test2, y_train2, y_test2 = train_test_split(xc, yc, test_size=0.6, r
 #define model
 model2 = Sequential()
 model2.add(Input(shape=(1,)))
+#if I want to forced alpha to be 0.01
+#model2.add(Dense(150,activation = keras.layers.LeakyReLU(alpha=0.01)))
+#using default value: 0.3
 model2.add(Dense(150,activation = "LeakyReLU"))
 model2.add(Dense(150,activation = "LeakyReLU"))
 model2.add(Dense(150,activation = "LeakyReLU"))
@@ -69,12 +70,11 @@ model2.add(Dense(1))
 model2.compile(
    loss = 'MAE', optimizer = 'Adam', metrics=['mae']
 )
-#model.fit(X_train, Y_train, batch_size = 128, epochs = 50)
 model2.fit(x_train2, y_train2, epochs=50, batch_size=128, validation_data=(x_test2, y_test2))
 
 
-#model3 - trying ELU
 
+#model3 - trying PReLU due to varying characteristics and signal propagation
 # Split data into train and test sets
 x_train3, x_test3, y_train3, y_test3 = train_test_split(xc, yc, test_size=0.6, random_state=42)
 
@@ -96,9 +96,7 @@ model3.add(Dense(1))
 model3.compile(
    loss = 'MAE', optimizer = 'Adam', metrics=['mae']
 )
-#model.fit(X_train, Y_train, batch_size = 128, epochs = 50)
 model3.fit(x_train3, y_train3, epochs=50, batch_size=128, validation_data=(x_test3, y_test3))
-
 
 
 
@@ -110,7 +108,7 @@ train_loss1 = model1.evaluate(x_train1, y_train1)
 print("Training Loss1:", train_loss1)
 
 # Evaluate the model on test data
-#loss1, accuracy1 = model1.evaluate(x_test1, y_test1)
+#loss1, accuracy1 = model1.evaluate(x_test1, y_test1)   #accuracy is not used in this lab
 test_loss1 = model1.evaluate(x_test1, y_test1)
 print("Test Loss1:", test_loss1)
 
@@ -152,12 +150,10 @@ plt.title("Model3 Fit")
 plt.show()
 
 
-
 #part4
-# to pick the model that has the highest accuracy, we need to choos the model with lowest loss.
-
+# to pick the model that has the highest accuracy, we need to choose the model with lowest loss.
 # Get the model with the highest accuracy
-best_model = model1  # Assume model1 has the highest accuracy initially
+best_model = model1                         # Assuming model1 has the highest accuracy initially
 lowest_loss = test_loss1
 print("model1 selected as best model")
 
@@ -171,6 +167,7 @@ if test_loss3 < lowest_loss:
     best_model = model3
     print("model3 selected as best model")
 
+# Get the weights and biases of the chosen model
 weights = []
 biases = []
 
@@ -186,21 +183,21 @@ x_samples = np.reshape(x_samples, (x_samples.shape[0], 1))
 # Compute the output of the model manually
 for i, (w, b) in enumerate(zip(weights, biases)):
     x_samples = np.dot(x_samples, w) + b
-    if i < len(weights) - 1:  # Apply activation function except for the last layer
+    if i < len(weights) - 1:            # Apply activation function except for the last layer
         if (best_model == model1):
             x_samples = np.maximum(x_samples, 0)  # ReLU activation function
         if (best_model == model2):
+            #x_samples = np.maximum(0.01 * x_samples, x_samples)        # LeakyReLU using alpha as 0.01
+            #https://stackoverflow.com/questions/64735352/details-about-alpha-in-tf-nn-leaky-relu-features-alpha-0-2-name-none#:~:text=So%20Leaky%20ReLU%20substitutes%20zero,learning%20without%20reaching%20dead%20end.
             x_samples = np.maximum(0.3 * x_samples, x_samples) # LeakyReLU using default values
-            
         if (best_model == model3):
             x_samples = np.where(x_samples >= 0, x_samples, 1 * (np.exp(x_samples) - 1))  # ELU activation function
-
-# Get the output of the model using model.predict()
-predicted_output = best_model.predict(x_train1[:5])
 
 # Print the manually computed output and the output obtained from model.predict()
 print("Manually Computed Output (weights and bias):")
 print(x_samples)
 
+# Get the output of the model using model.predict() and printing it
+predicted_output = best_model.predict(x_train1[:5])
 print("\nOutput from model.predict():")
 print(predicted_output)
